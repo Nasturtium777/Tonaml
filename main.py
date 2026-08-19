@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 
 HISTORY_FILE = "history.json"
-TARGET_URL = "https://tonamel.com/search?q=カードゲーム"
+TARGET_URL = "https://tonamel.com/competitions?game=XrossStars&region=JP&date=1787065200&nt=0&sr=%E5%9F%BC%E7%8E%89%20%E5%8D%83%E8%91%89%20%E6%9D%B1%E4%BA%AC%20%E7%A5%9E%E5%A5%88%E5%B7%9D"
 DISCORD_WEBHOOK_URL = os.environ["DISCORD_WEBHOOK_URL"]
 
 def load_history():
