@@ -25,4 +25,5 @@ jobs:
           git config --local user.name "GitHub Action"
           git add history.json
           git commit -m "Update history" || exit 0
+          git pull --rebase origin main
           git push
