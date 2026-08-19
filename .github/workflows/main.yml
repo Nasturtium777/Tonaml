@@ -2,8 +2,8 @@ name: Tonamel Checker
 
 on:
   schedule:
-    # 30分ごと（例: 12分, 42分に実行して切りの良い時間を避ける）
-    - cron: '12,42 * * * *'
+    # 15分ごとに実行
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 jobs:
