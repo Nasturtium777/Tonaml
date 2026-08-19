@@ -21,15 +21,16 @@ def save_history(history):
 def get_latest():
     tournaments = []
     
-    # Playwright（ヘッドレスブラウザ）を起動してJavaScriptを実行
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         
-        # ページを開き、ネットワークの読み込みが落ち着くまで待機
-        page.goto(TARGET_URL, wait_until="networkidle")
+        # networkidle から domcontentloaded に変更（タイムアウト回避）
+        page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=60000)
         
-        # レンダリング後のHTMLを取得
+        # JavaScriptによる要素描画を待つため3秒固定待機
+        page.wait_for_timeout(3000)
+        
         content = page.content()
         browser.close()
 
