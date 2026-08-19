@@ -23,7 +23,18 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          
+          # 1. 変更がある場合のみ一時退避（stash）
+          git add history.json
+          git stash
+          
+          # 2. リモートの最新情報を取得
+          git pull --rebase origin main
+          
+          # 3. 退避した変更を戻す（競合時はこちらの変更を優先）
+          git stash pop || git checkout --ours history.json
+          
+          # 4. 改めてコミット＆プッシュ
           git add history.json
           git commit -m "Update history" || exit 0
-          git pull --rebase origin main
           git push
