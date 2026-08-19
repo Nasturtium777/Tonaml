@@ -5,7 +5,6 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 
 HISTORY_FILE = "history.json"
-# 監視対象のURL（※dateパラメータで該当大会がない場合はパラメータを外すか調整してください）
 TARGET_URL = "https://tonamel.com/competitions?game=XrossStars&region=JP&date=1787065200&nt=0&sr=%E5%9F%BC%E7%8E%89%20%E5%8D%83%E8%91%89%20%E6%9D%B1%E4%BA%AC%20%E7%A5%9E%E5%A5%88%E5%B7%9D"
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
@@ -24,7 +23,6 @@ def get_latest():
     
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # PCブラウザのUser-Agentを設定してBot判定による空画面化を防ぐ
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
@@ -32,12 +30,10 @@ def get_latest():
         
         try:
             page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=60000)
-            # 大会リンク要素（/competition/ を含むaタグ）が出現するまで最大20秒待機
             page.wait_for_selector('a[href*="/competition/"]', timeout=20000)
         except Exception as e:
             print(f"[DEBUG] 要素の読み込み待機タイムアウト（または該当大会が0件）: {e}")
 
-        # レンダリング完了を確実にするため2秒固定待機
         page.wait_for_timeout(2000)
         content = page.content()
         browser.close()
@@ -47,8 +43,38 @@ def get_latest():
         href = a_tag["href"]
         if "/competition/" in href:
             url = href if href.startswith("http") else f"https://tonamel.com{href}"
+            
             if url not in [t["url"] for t in tournaments]:
-                tournaments.append({"url": url})
+                # カード内のテキスト行を抽出
+                lines = [line.strip() for line in a_tag.get_text(separator="\n").split("\n") if line.strip()]
+                
+                title = "名称不明の大会"
+                date_str = "日時未記載"
+
+                # 1. CSSクラス指定でのピンポイント取得を試みる
+                title_elem = a_tag.select_one('[class*="title"], [class*="name"], h2, h3')
+                date_elem = a_tag.select_one('[class*="date"], [class*="time"]')
+
+                if title_elem and title_elem.text.strip():
+                    title = title_elem.text.strip()
+                elif lines:
+                    # クラス指定で見つからない場合、一番長いテキストをタイトルと推測
+                    title = max(lines, key=len)
+
+                if date_elem and date_elem.text.strip():
+                    date_str = date_elem.text.strip()
+                else:
+                    # 日付表現（/ や 月, 日, : など）を含む行を検索
+                    for line in lines:
+                        if any(char in line for char in ["/", "月", "日", ":"]) and len(line) < 30:
+                            date_str = line
+                            break
+
+                tournaments.append({
+                    "url": url,
+                    "title": title,
+                    "date": date_str
+                })
                 
     print(f"[DEBUG] 取得できた大会件数: {len(tournaments)}件")
     return tournaments
@@ -64,7 +90,15 @@ def main():
     send_count = 0
     for item in new_items:
         if item["url"] not in history:
-            res = requests.post(DISCORD_WEBHOOK_URL, json={"content": f"新着大会: {item['url']}"})
+            # Discord向けに装飾したメッセージを作成
+            content = (
+                f"🏆 **新着大会情報**\n"
+                f"**大会名:** {item['title']}\n"
+                f"📅 **日時:** {item['date']}\n"
+                f"🔗 **URL:** {item['url']}"
+            )
+            
+            res = requests.post(DISCORD_WEBHOOK_URL, json={"content": content})
             print(f"[DEBUG] Discord送信レスポンス: {res.status_code}")
             history.append(item["url"])
             send_count += 1
