@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install requests beautifulsoup4 playwright
-          playwright install chromium --with-deps
+          playwright install chromium
 
       - name: Run script
         env:
