@@ -1,10 +1,11 @@
 import os
 import json
 import requests
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 
 HISTORY_FILE = "history.json"
-TARGET_URL = "https://tonamel.com/search?q=カードゲーム"
+TARGET_URL = "https://tonamel.com/competitions?game=XrossStars&region=JP&date=1787065200&nt=0&sr=%E5%9F%BC%E7%8E%89%20%E5%8D%83%E8%91%89%20%E6%9D%B1%E4%BA%AC%20%E7%A5%9E%E5%A5%88%E5%B7%9D"
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
 def load_history():
@@ -18,16 +19,27 @@ def save_history(history):
         json.dump(history, f)
 
 def get_latest():
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    response = requests.get(TARGET_URL, headers=headers)
-    soup = BeautifulSoup(response.text, "html.parser")
     tournaments = []
     
+    # Playwright（ヘッドレスブラウザ）を起動してJavaScriptを実行
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        
+        # ページを開き、ネットワークの読み込みが落ち着くまで待機
+        page.goto(TARGET_URL, wait_until="networkidle")
+        
+        # レンダリング後のHTMLを取得
+        content = page.content()
+        browser.close()
+
+    soup = BeautifulSoup(content, "html.parser")
     for a_tag in soup.find_all("a", href=True):
         if "/competition/" in a_tag["href"]:
             url = f"https://tonamel.com{a_tag['href']}" if a_tag['href'].startswith('/') else a_tag['href']
-            tournaments.append({"url": url})
-            
+            if url not in [t["url"] for t in tournaments]:
+                tournaments.append({"url": url})
+                
     print(f"[DEBUG] 取得できた大会件数: {len(tournaments)}件")
     return tournaments
 
