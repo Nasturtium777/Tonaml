@@ -1,7 +1,9 @@
 name: Tonamel Checker
+
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # 30分ごと（例: 12分, 42分に実行して切りの良い時間を避ける）
+    - cron: '12,42 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -9,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v4
 
