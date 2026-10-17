@@ -9,6 +9,7 @@ HISTORY_FILE = "history.json"
 # ※日付を限定しない場合は URL から `&date=1787065200` を外すか調整してください
 TARGET_URL = "https://tonamel.com/competitions?game=XrossStars&region=JP&nt=0&sr=%E5%9F%BC%E7%8E%89%20%E5%8D%83%E8%91%89%20%E6%9D%B1%E4%BA%AC%20%E7%A5%9E%E5%A5%88%E5%B7%9D"
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
+DISCORD_WEBHOOK_URL2 = os.environ.get("DISCORD_WEBHOOK_URL2", "")
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -95,6 +96,9 @@ def main():
     if not DISCORD_WEBHOOK_URL:
         print("[ERROR] DISCORD_WEBHOOK_URL が設定されていません。")
         return
+    if not DISCORD_WEBHOOK_URL2:
+        print("[ERROR] DISCORD_WEBHOOK_URL2 が設定されていません。")
+        return
 
     history = load_history()
     new_items = get_latest()
@@ -111,6 +115,8 @@ def main():
             
             res = requests.post(DISCORD_WEBHOOK_URL, json={"content": content})
             print(f"[DEBUG] Discord送信レスポンス: {res.status_code}")
+            res2 = requests.post(DISCORD_WEBHOOK_URL2, json={"content": content})
+            print(f"[DEBUG] Discord送信レスポンス: {res2.status_code}")
             
             # Discordの連投制限（Rate Limit）を防ぐために1秒待機
             time.sleep(1)
