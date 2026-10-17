@@ -96,9 +96,6 @@ def main():
     if not DISCORD_WEBHOOK_URL:
         print("[ERROR] DISCORD_WEBHOOK_URL が設定されていません。")
         return
-    if not DISCORD_WEBHOOK_URL2:
-        print("[ERROR] DISCORD_WEBHOOK_URL2 が設定されていません。")
-        return
 
     history = load_history()
     new_items = get_latest()
@@ -113,10 +110,14 @@ def main():
                 f"🔗 **URL:** {item['url']}"
             )
             
+            # 1つ目のWebhookへ送信
             res = requests.post(DISCORD_WEBHOOK_URL, json={"content": content})
-            print(f"[DEBUG] Discord送信レスポンス: {res.status_code}")
-            res2 = requests.post(DISCORD_WEBHOOK_URL2, json={"content": content})
-            print(f"[DEBUG] Discord送信レスポンス: {res2.status_code}")
+            print(f"[DEBUG] Discord送信レスポンス(1): {res.status_code}")
+            
+            # 2つ目のWebhookへ送信（環境変数が設定されている場合のみ）
+            if DISCORD_WEBHOOK_URL2:
+                res2 = requests.post(DISCORD_WEBHOOK_URL2, json={"content": content})
+                print(f"[DEBUG] Discord送信レスポンス(2): {res2.status_code}")
             
             # Discordの連投制限（Rate Limit）を防ぐために1秒待機
             time.sleep(1)
